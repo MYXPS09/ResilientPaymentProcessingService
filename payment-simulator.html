@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftPay - Payment Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-gradient: linear-gradient(135deg, #6C63FF, #4F46E5);
+            --success: #10B981;
+            --failure: #EF4444;
+            --warning: #F59E0B;
+            
+            --bg-color: #0F0F1A;
+            --surface-color: #1A1A2E;
+            --card-color: #16213E;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #F1F5F9;
+            --text-muted: #94A3B8;
+            --modal-bg: rgba(26, 26, 46, 0.95);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #F8FAFC;
+            --surface-color: #FFFFFF;
+            --card-color: #FFFFFF;
+            --border-color: rgba(0, 0, 0, 0.1);
+            --text-primary: #0F172A;
+            --text-muted: #64748B;
+            --modal-bg: rgba(255, 255, 255, 0.95);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            font-variant-numeric: tabular-nums;
+            transition: background-color 180ms cubic-bezier(0.16, 1, 0.3, 1), 
+                        border-color 180ms cubic-bezier(0.16, 1, 0.3, 1), 
+                        color 180ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Nav */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .brand svg {
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+        }
+        
+        .nav-btn:hover {
+            color: var(--text-primary);
+            background: var(--border-color);
+        }
+
+        .nav-btn.active {
+            color: white;
+            background: var(--primary-gradient);
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--card-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(12px);
+        }
+
+        /* Button */
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .btn-outline:hover:not(:disabled) {
+            background: var(--border-color);
+            box-shadow: none;
+        }
+
+        /* Main Layout */
+        .view {
+            display: none;
+            flex: 1;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .view.active {
+            display: block;
+        }
+
+        /* Checkout View */
+        .checkout-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: calc(100vh - 100px);
+        }
+
+        .product-card {
+            width: 320px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .product-img {
+            width: 100%;
+            height: 200px;
+            background: var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .product-price {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 8px 0 24px 0;
+        }
+
+        /* Modal Overlay */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 200ms ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            transform: scale(0.95);
+            transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+
+        .modal-overlay.open .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+            position: relative;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 4px;
+        }
+        .modal-close:hover { color: var(--text-primary); }
+
+        .modal-amount {
+            font-size: 28px;
+            font-weight: 700;
+            margin-top: 8px;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            height: 3px;
+            background: var(--border-color);
+            width: 100%;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 30%;
+            background: var(--primary-gradient);
+            animation: shimmerSweep 1.5s infinite linear;
+        }
+
+        @keyframes shimmerSweep {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        .modal-body {
+            padding: 24px;
+            position: relative;
+            min-height: 300px;
+        }
+
+        /* Payment Tabs */
+        .payment-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        
+        .ptab {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            padding: 8px 12px;
+            position: relative;
+        }
+        
+        .ptab.active {
+            color: var(--primary);
+        }
+        
+        .ptab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -9px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: slideIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Form Inputs */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .form-control {
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        .form-control.error {
+            border-color: var(--failure);
+            animation: shake 400ms;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .input-icon-right {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+        }
+
+        .row {
+            display: flex;
+            gap: 16px;
+        }
+        .col { flex: 1; }
+
+        /* Banks Grid */
+        .bank-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .bank-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .bank-card:hover { background: var(--border-color); }
+        .bank-card.selected { border-color: var(--primary); background: rgba(79, 70, 229, 0.1); }
+
+        /* Footer */
+        .modal-footer {
+            padding: 16px;
+            text-align: center;
+            border-top: 1px solid var(--border-color);
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Screens */
+        .screen {
+            display: none;
+            text-align: center;
+            padding: 24px 0;
+        }
+        .screen.active {
+            display: block;
+            animation: slideIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .icon-circle {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto 16px;
+        }
+        .icon-circle svg { width: 32px; height: 32px; }
+
+        .icon-success { background: rgba(16, 185, 129, 0.1); color: var(--success); }
+        .icon-failure { background: rgba(239, 68, 68, 0.1); color: var(--failure); }
+        .icon-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); }
+
+        .ref-id {
+            background: var(--border-color);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 16px 0;
+            display: inline-block;
+        }
+
+        /* Dashboard */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .kpi-card {
+            padding: 20px;
+        }
+        .kpi-title { font-size: 14px; color: var(--text-muted); }
+        .kpi-val { font-size: 32px; font-weight: 700; margin-top: 8px; }
+
+        .filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .filters .form-control { width: 200px; padding: 8px 12px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        th {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        td { font-size: 14px; }
+        
+        tbody tr {
+            animation: fadeInRow 300ms ease forwards;
+            opacity: 0;
+        }
+
+        @keyframes fadeInRow {
+            to { opacity: 1; }
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge.failed { background: rgba(239, 68, 68, 0.15); color: var(--failure); }
+        .badge.pending { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
+        .badge.processing { background: rgba(79, 70, 229, 0.15); color: var(--primary); }
+
+        .action-link {
+            color: var(--primary);
+            text-decoration: none;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+        .action-link:hover { text-decoration: underline; }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 24px;
+            margin-top: 16px;
+            text-align: left;
+        }
+        .timeline-item {
+            position: relative;
+            padding-bottom: 24px;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--primary);
+            z-index: 2;
+        }
+        .timeline-item::after {
+            content: '';
+            position: absolute;
+            left: -16px;
+            top: 14px;
+            bottom: -4px;
+            width: 2px;
+            background: var(--border-color);
+            z-index: 1;
+        }
+        .timeline-item:last-child::after { display: none; }
+        .tl-title { font-size: 14px; font-weight: 600; }
+        .tl-time { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+        .tl-note { font-size: 14px; }
+
+        .badge-visa { background: #1A1F71; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .badge-mc { background: #EB001B; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .badge-rupay { background: #F37021; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .kpi-grid { grid-template-columns: 1fr 1fr; }
+            .filters { flex-direction: column; }
+            .filters .form-control { width: 100%; }
+        }
+        
+        @keyframes drawCheck { to { stroke-dashoffset: 0; } }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="brand">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            SwiftPay
+        </div>
+        <div class="nav-links">
+            <button class="nav-btn active" onclick="switchView('checkout')">Checkout Demo</button>
+            <button class="nav-btn" onclick="switchView('dashboard')">Dashboard</button>
+        </div>
+        <div class="controls">
+            <label class="toggle-label">
+                <input type="checkbox" id="liveModeToggle"> Live API Mode
+            </label>
+            <label class="toggle-label">
+                <input type="checkbox" id="themeToggle"> Light Mode
+            </label>
+        </div>
+    </nav>
+
+    <!-- Checkout View -->
+    <div id="checkout-view" class="view active">
+        <div class="checkout-container">
+            <div class="glass-card product-card">
+                <div class="product-img">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                </div>
+                <h3>Premium Subscription</h3>
+                <div class="product-price">₹1,999.00</div>
+                <button class="btn" onclick="openModal()">
+                    Pay with SwiftPay
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard View -->
+    <div id="dashboard-view" class="view">
+        <div class="kpi-grid">
+            <div class="glass-card kpi-card">
+                <div class="kpi-title">Total Payments</div>
+                <div class="kpi-val" id="kpi-total">0</div>
+            </div>
+            <div class="glass-card kpi-card">
+                <div class="kpi-title">Successful</div>
+                <div class="kpi-val" id="kpi-success">0</div>
+            </div>
+            <div class="glass-card kpi-card">
+                <div class="kpi-title">Failed</div>
+                <div class="kpi-val" id="kpi-failed">0</div>
+            </div>
+            <div class="glass-card kpi-card">
+                <div class="kpi-title">Total Volume (₹)</div>
+                <div class="kpi-val" id="kpi-volume">0</div>
+            </div>
+        </div>
+
+        <div class="glass-card" style="padding: 20px;">
+            <div class="filters">
+                <input type="text" id="searchFilter" class="form-control" placeholder="Search by ID or Name..." onkeyup="renderTable()">
+                <select id="statusFilter" class="form-control" onchange="renderTable()">
+                    <option value="ALL">All Statuses</option>
+                    <option value="SUCCESS">Success</option>
+                    <option value="FAILED">Failed</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="PROCESSING">Processing</option>
+                </select>
+                <div id="apiStatusBadge" style="margin-left:auto; display:none; align-items:center;" class="badge pending">API Offline - Mock Mode Active</div>
+            </div>
+            <div style="overflow-x:auto;">
+                <table id="paymentsTable">
+                    <thead>
+                        <tr>
+                            <th>Payment #</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Payer Name</th>
+                            <th>Method</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Rows dynamically populated -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <button class="modal-close" onclick="closeModal()" aria-label="Close modal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <div class="brand" style="justify-content: center; font-size:16px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                    SwiftPay
+                </div>
+                <div class="modal-amount" id="modalAmountDisplay">₹1,999.00</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Premium Subscription</div>
+            </div>
+            
+            <div class="progress-container" id="progressBar">
+                <div class="progress-bar"></div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Payment Form Screen -->
+                <div id="screen-form" class="screen active" style="padding:0;">
+                    <div class="payment-tabs">
+                        <button class="ptab active" onclick="switchTab('card')">Card</button>
+                        <button class="ptab" onclick="switchTab('upi')">UPI</button>
+                        <button class="ptab" onclick="switchTab('netbanking')">Net Banking</button>
+                    </div>
+
+                    <!-- Card Tab -->
+                    <div id="tab-card" class="tab-content active">
+                        <div class="form-group">
+                            <label>Card Number</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="ccNumber" class="form-control" placeholder="0000 0000 0000 0000" maxlength="19" oninput="formatCard()" aria-label="Card Number">
+                                <div class="input-icon-right" id="cardBadge"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Cardholder Name</label>
+                            <input type="text" id="ccName" class="form-control" placeholder="Name on card" value="Test User" aria-label="Cardholder Name">
+                        </div>
+                        <div class="row">
+                            <div class="col form-group">
+                                <label>Expiry</label>
+                                <input type="text" id="ccExpiry" class="form-control" placeholder="MM/YY" maxlength="5" oninput="formatExpiry()" aria-label="Expiry Date">
+                            </div>
+                            <div class="col form-group">
+                                <label>CVV</label>
+                                <div class="input-wrapper">
+                                    <input type="password" id="ccCvv" class="form-control" placeholder="123" maxlength="3" aria-label="CVV">
+                                    <div class="input-icon-right" style="cursor:pointer;" onclick="toggleCvv()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn" id="payBtn" onclick="processPayment('Card')">Pay ₹1,999.00</button>
+                    </div>
+
+                    <!-- UPI Tab -->
+                    <div id="tab-upi" class="tab-content">
+                        <div style="text-align:center; padding: 20px; border: 1px dashed var(--border-color); border-radius:8px; margin-bottom: 16px;">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>
+                            <div style="font-size:12px; color:var(--text-muted); margin-top:8px;">Scan with any UPI app</div>
+                        </div>
+                        <div style="text-align:center; margin-bottom:16px; font-size:14px;">OR</div>
+                        <div class="form-group">
+                            <label>Enter UPI ID</label>
+                            <input type="text" id="upiId" class="form-control" placeholder="yourname@upi" value="test@upi" aria-label="UPI ID">
+                        </div>
+                        <button class="btn" onclick="processPayment('UPI')">Verify & Pay</button>
+                    </div>
+
+                    <!-- Net Banking Tab -->
+                    <div id="tab-netbanking" class="tab-content">
+                        <div class="bank-grid">
+                            <div class="bank-card" onclick="selectBank(this)">SBI</div>
+                            <div class="bank-card" onclick="selectBank(this)">HDFC</div>
+                            <div class="bank-card" onclick="selectBank(this)">ICICI</div>
+                            <div class="bank-card" onclick="selectBank(this)">Axis Bank</div>
+                            <div class="bank-card" onclick="selectBank(this)">Kotak</div>
+                            <div class="bank-card" onclick="selectBank(this)">Yes Bank</div>
+                        </div>
+                        <button class="btn" onclick="processPayment('NetBanking')">Proceed to Bank</button>
+                    </div>
+                </div>
+
+                <!-- Processing Screen -->
+                <div id="screen-processing" class="screen">
+                    <div style="margin:40px 0;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" class="spin">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+                        </svg>
+                        <style>.spin { animation: spin 1s linear infinite; } @keyframes spin { 100% { transform: rotate(360deg); } }</style>
+                    </div>
+                    <h3 id="processText">Connecting to gateway...</h3>
+                    <p style="color:var(--text-muted); font-size:14px; margin-top:8px;">Please do not close this window</p>
+                </div>
+
+                <!-- Success Screen -->
+                <div id="screen-success" class="screen">
+                    <div class="icon-circle icon-success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" id="checkSvg">
+                            <polyline points="20 6 9 17 4 12" style="stroke-dasharray: 50; stroke-dashoffset: 50;"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Payment Successful</h3>
+                    <div class="ref-id" id="successRef">GW-12345678</div>
+                    <button class="btn" style="margin-bottom:8px;" onclick="closeModal()">Back to Store</button>
+                    <a href="#" class="btn btn-outline" style="text-decoration: none;" onclick="alert('Receipt downloaded')">Download Receipt</a>
+                </div>
+
+                <!-- Failure Screen -->
+                <div id="screen-failure" class="screen">
+                    <div class="icon-circle icon-failure" id="failIcon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </div>
+                    <h3>Payment Failed</h3>
+                    <p style="color:var(--text-muted); font-size:14px; margin-top:8px;">Your transaction was declined.</p>
+                    <div style="margin-top:24px;">
+                        <button class="btn" style="margin-bottom:8px;" onclick="resetModal()">Try Again</button>
+                        <button class="btn btn-outline" onclick="switchTab('upi'); resetModal();">Try Another Method</button>
+                    </div>
+                </div>
+
+                <!-- Timeout Screen -->
+                <div id="screen-timeout" class="screen">
+                    <div class="icon-circle icon-warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </div>
+                    <h3>Gateway Timed Out</h3>
+                    <p style="color:var(--text-muted); font-size:14px; margin-top:8px;">We didn't hear back from the bank. Your money is safe.</p>
+                    <button class="btn" style="margin-top:24px;" onclick="closeModal()">Check Status</button>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Secured by SwiftPay
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('open')" aria-label="Close modal">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <h3 id="detailId">Payment Details</h3>
+            </div>
+            <div class="modal-body" style="min-height: auto;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span style="color:var(--text-muted); font-size:12px;">Amount</span>
+                    <span style="font-weight:700;" id="detailAmount"></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                    <span style="color:var(--text-muted); font-size:12px;">Payer</span>
+                    <span id="detailPayer"></span>
+                </div>
+                <div style="display:flex; justify-content:space-between; margin-bottom:24px;">
+                    <span style="color:var(--text-muted); font-size:12px;">Status</span>
+                    <span id="detailStatus" class="badge"></span>
+                </div>
+
+                <div style="font-size:14px; font-weight:600; margin-bottom:8px;">Audit Trail</div>
+                <div class="timeline" id="detailTimeline">
+                    <!-- Events -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = "http://localhost:8000/api/v1";
+        const API_KEY = "P1234";
+
+        // State
+        let payments = [];
+        let isLiveMode = false;
+
+        // Init Mock Data
+        function generateMockData() {
+            const statuses = ['SUCCESS', 'SUCCESS', 'SUCCESS', 'FAILED', 'PENDING'];
+            const methods = ['Card', 'UPI', 'NetBanking'];
+            for(let i=1; i<=10; i++) {
+                payments.push({
+                    id: i,
+                    payment_num: `PAY-202610${i}00-${Math.floor(Math.random()*100000)}`,
+                    amount: Math.floor(Math.random() * 5000) + 100,
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    payer_name: `User ${i}`,
+                    method: methods[Math.floor(Math.random() * methods.length)],
+                    date: new Date(Date.now() - Math.random() * 100000000).toISOString(),
+                    events: [
+                        { type: 'INITIATED', time: new Date().toISOString(), notes: 'Created' }
+                    ]
+                });
+            }
+        }
+        generateMockData();
+
+        // UI Toggles
+        document.getElementById('themeToggle').addEventListener('change', (e) => {
+            document.documentElement.setAttribute('data-theme', e.target.checked ? 'light' : 'dark');
+        });
+
+        document.getElementById('liveModeToggle').addEventListener('change', (e) => {
+            isLiveMode = e.target.checked;
+            document.getElementById('apiStatusBadge').style.display = 'none';
+            if (isLiveMode && document.getElementById('dashboard-view').classList.contains('active')) {
+                fetchLivePayments();
+            } else if (!isLiveMode) {
+                renderTable();
+            }
+        });
+
+        function switchView(view) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`${view}-view`).classList.add('active');
+            event.target.classList.add('active');
+
+            if(view === 'dashboard') {
+                if(isLiveMode) fetchLivePayments();
+                else renderTable();
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.ptab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        // Modal
+        function openModal() {
+            document.getElementById('paymentModal').classList.add('open');
+            resetModal();
+        }
+
+        function closeModal() {
+            document.getElementById('paymentModal').classList.remove('open');
+        }
+
+        function resetModal() {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-form').classList.add('active');
+            document.getElementById('progressBar').style.display = 'none';
+            document.getElementById('checkSvg').style.animation = 'none';
+            document.getElementById('failIcon').style.animation = 'none';
+        }
+
+        // Card Logic
+        function formatCard() {
+            let input = document.getElementById('ccNumber');
+            let val = input.value.replace(/\D/g, '');
+            let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+            input.value = formatted;
+            
+            const badge = document.getElementById('cardBadge');
+            if(val.startsWith('4')) badge.innerHTML = '<span class="badge-visa">VISA</span>';
+            else if(val.startsWith('5')) badge.innerHTML = '<span class="badge-mc">MC</span>';
+            else if(val.startsWith('6')) badge.innerHTML = '<span class="badge-rupay">RuPay</span>';
+            else badge.innerHTML = '';
+            input.classList.remove('error');
+        }
+
+        function formatExpiry() {
+            let input = document.getElementById('ccExpiry');
+            let val = input.value.replace(/\D/g, '');
+            if(val.length > 2) val = val.substring(0,2) + '/' + val.substring(2,4);
+            input.value = val;
+        }
+
+        function toggleCvv() {
+            let input = document.getElementById('ccCvv');
+            input.type = input.type === 'password' ? 'text' : 'password';
+        }
+
+        function selectBank(el) {
+            document.querySelectorAll('.bank-card').forEach(b => b.classList.remove('selected'));
+            el.classList.add('selected');
+        }
+
+        // Payment Processing
+        async function processPayment(method) {
+            // Validation
+            if(method === 'Card') {
+                const cc = document.getElementById('ccNumber');
+                if(cc.value.replace(/\D/g, '').length < 16) {
+                    cc.classList.add('error');
+                    setTimeout(() => cc.classList.remove('error'), 400);
+                    return;
+                }
+            }
+
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-processing').classList.add('active');
+            document.getElementById('progressBar').style.display = 'block';
+
+            const texts = ["Connecting to gateway...", "Verifying payment...", "Awaiting confirmation..."];
+            let tIdx = 0;
+            const tInt = setInterval(() => {
+                tIdx = (tIdx+1)%texts.length;
+                document.getElementById('processText').innerText = texts[tIdx];
+            }, 800);
+
+            let outcome = 'SUCCESS';
+            let ref = null;
+
+            if (isLiveMode) {
+                try {
+                    const reqBody = {
+                        idempotency_key: "idem-" + Date.now(),
+                        amount: 1999.00,
+                        currency: "INR",
+                        payer_name: "Test User",
+                        description: "Premium Subscription"
+                    };
+                    const res = await fetch(`${API_BASE_URL}/payments/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Client-Key': API_KEY
+                        },
+                        body: JSON.stringify(reqBody)
+                    });
+                    
+                    if(!res.ok) throw new Error("API Error");
+                    const data = await res.json();
+                    
+                    // Poll for completion since it's async celery
+                    let finalData = data;
+                    for(let i=0; i<10; i++) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        const pollRes = await fetch(`${API_BASE_URL}/payments/${data.id}`, {
+                            headers: {'X-Client-Key': API_KEY}
+                        });
+                        finalData = await pollRes.json();
+                        if(finalData.status === 'SUCCESS' || finalData.status === 'FAILED') break;
+                    }
+
+                    outcome = finalData.status;
+                    ref = finalData.gateway_ref;
+                } catch(e) {
+                    outcome = 'FAILED';
+                    document.getElementById('apiStatusBadge').style.display = 'inline-flex';
+                    isLiveMode = false;
+                    document.getElementById('liveModeToggle').checked = false;
+                }
+            } else {
+                // Mock delay 2-3s
+                await new Promise(r => setTimeout(r, 2000 + Math.random()*1000));
+                const rand = Math.random();
+                if(rand < 0.65) outcome = 'SUCCESS';
+                else if(rand < 0.90) outcome = 'FAILED';
+                else outcome = 'TIMEOUT';
+                ref = "GW-" + Math.floor(Math.random()*100000000);
+            }
+
+            clearInterval(tInt);
+            document.getElementById('progressBar').style.display = 'none';
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+
+            if(outcome === 'SUCCESS') {
+                document.getElementById('screen-success').classList.add('active');
+                document.getElementById('successRef').innerText = ref || 'GW-N/A';
+                document.getElementById('checkSvg').style.animation = 'drawCheck 600ms ease-out forwards';
+                
+                if(!isLiveMode) {
+                    payments.unshift({
+                        id: Date.now(), payment_num: `PAY-${Date.now()}`, amount: 1999, status: 'SUCCESS', payer_name: 'Test User', method, date: new Date().toISOString(), events: [{type:'SUCCESS', time:new Date().toISOString(), notes:'Paid'}]
+                    });
+                }
+            } else if(outcome === 'FAILED') {
+                document.getElementById('screen-failure').classList.add('active');
+                document.getElementById('failIcon').style.animation = 'shake 400ms';
+                if(!isLiveMode) {
+                    payments.unshift({
+                        id: Date.now(), payment_num: `PAY-${Date.now()}`, amount: 1999, status: 'FAILED', payer_name: 'Test User', method, date: new Date().toISOString(), events: [{type:'FAILED', time:new Date().toISOString(), notes:'Declined'}]
+                    });
+                }
+            } else {
+                document.getElementById('screen-timeout').classList.add('active');
+            }
+        }
+
+        // Dashboard Logic
+        async function fetchLivePayments() {
+            try {
+                const res = await fetch(`${API_BASE_URL}/payments/`, {
+                    headers: {'X-Client-Key': API_KEY}
+                });
+                if(!res.ok) throw new Error("API Offline");
+                const data = await res.json();
+                payments = data.map(d => ({
+                    id: d.id,
+                    payment_num: d.payment_num,
+                    amount: d.amount,
+                    status: d.status,
+                    payer_name: d.payer_name || 'N/A',
+                    method: 'API',
+                    date: d.created_at,
+                    events: [] // fetched on demand
+                }));
+                renderTable();
+            } catch(e) {
+                document.getElementById('apiStatusBadge').style.display = 'inline-flex';
+                isLiveMode = false;
+                document.getElementById('liveModeToggle').checked = false;
+                renderTable();
+            }
+        }
+
+        function renderTable() {
+            const search = document.getElementById('searchFilter').value.toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+            
+            let filtered = payments.filter(p => {
+                const matchSearch = p.payment_num.toLowerCase().includes(search) || p.payer_name.toLowerCase().includes(search);
+                const matchStatus = status === 'ALL' || p.status === status;
+                return matchSearch && matchStatus;
+            });
+
+            // Update KPIs
+            animateValue("kpi-total", filtered.length);
+            animateValue("kpi-success", filtered.filter(p=>p.status==='SUCCESS').length);
+            animateValue("kpi-failed", filtered.filter(p=>p.status==='FAILED').length);
+            animateValue("kpi-volume", filtered.filter(p=>p.status==='SUCCESS').reduce((acc, p)=>acc+Number(p.amount),0));
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            filtered.slice(0, 50).forEach((p, idx) => {
+                const tr = document.createElement('tr');
+                tr.style.animationDelay = `${idx * 50}ms`;
+                tr.innerHTML = `
+                    <td>${p.payment_num}</td>
+                    <td>₹${p.amount}</td>
+                    <td><span class="badge ${p.status.toLowerCase()}">${p.status}</span></td>
+                    <td>${p.payer_name}</td>
+                    <td>${p.method}</td>
+                    <td>${new Date(p.date).toLocaleString()}</td>
+                    <td>
+                        <span class="action-link" onclick="viewDetails(${p.id})">View</span>
+                        ${p.status === 'FAILED' ? `<span class="action-link" onclick="retryPayment(${p.id})">Retry</span>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function viewDetails(id) {
+            let p = payments.find(x => x.id === id);
+            if(!p) return;
+            
+            document.getElementById('detailId').innerText = p.payment_num;
+            document.getElementById('detailAmount').innerText = `₹${p.amount}`;
+            document.getElementById('detailPayer').innerText = p.payer_name;
+            const badge = document.getElementById('detailStatus');
+            badge.className = `badge ${p.status.toLowerCase()}`;
+            badge.innerText = p.status;
+
+            const tl = document.getElementById('detailTimeline');
+            tl.innerHTML = '';
+
+            let evts = p.events;
+            if(isLiveMode) {
+                try {
+                    const res = await fetch(`${API_BASE_URL}/payments/${id}/events`, {headers: {'X-Client-Key': API_KEY}});
+                    const data = await res.json();
+                    evts = data.map(d => ({ type: d.event_type, time: d.created_at, notes: d.notes }));
+                } catch(e) {}
+            }
+
+            if(evts && evts.length) {
+                evts.forEach(e => {
+                    tl.innerHTML += `
+                        <div class="timeline-item">
+                            <div class="tl-title">${e.type}</div>
+                            <div class="tl-time">${new Date(e.time).toLocaleString()}</div>
+                            <div class="tl-note">${e.notes || ''}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                tl.innerHTML = `<div class="timeline-item"><div class="tl-title">INITIATED</div></div>`;
+            }
+
+            document.getElementById('detailModal').classList.add('open');
+        }
+
+        async function retryPayment(id) {
+            if(!isLiveMode) {
+                alert("Retry only supported in Live API mode");
+                return;
+            }
+            try {
+                await fetch(`${API_BASE_URL}/payments/${id}/retry`, {
+                    method: 'POST',
+                    headers: {'X-Client-Key': API_KEY}
+                });
+                alert("Retry requested. Polling status...");
+                setTimeout(fetchLivePayments, 3000);
+            } catch(e) {
+                alert("Retry failed");
+            }
+        }
+
+        function animateValue(id, end) {
+            const obj = document.getElementById(id);
+            let start = parseInt(obj.innerText.replace(/,/g, '')) || 0;
+            if(start === end) { obj.innerText = end.toLocaleString(); return; }
+            let duration = 1000;
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                obj.innerText = Math.floor(progress * (end - start) + start).toLocaleString();
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerText = end.toLocaleString();
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+    </script>
+</body>
+</html>
